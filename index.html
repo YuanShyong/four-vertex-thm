@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>四頂點定理 (Four-Vertex Theorem) 互動幾何實驗室</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- KaTeX CSS & JS for LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0f172a;
+      color: #f1f5f9;
+      user-select: none;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom subtle glassmorphism & borders */
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    /* Touch canvas optimization */
+    canvas {
+      touch-action: none;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    /* KaTeX formula font sizing tweaks in dark UI */
+    .katex {
+      font-size: 1.05em;
+      color: inherit;
+    }
+    .katex-display {
+      margin: 0.75em 0 !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+  <header class="w-full glass-panel border-b border-slate-700/60 sticky top-0 z-40 px-4 py-3 sm:px-6">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-rose-500 flex items-center justify-center font-bold text-white shadow-lg text-lg">
+          4V
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+            四頂點定理 幾何實驗室
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Four-Vertex Lab</span>
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">
+            任何非圓的平面單純封閉正則曲線，曲率必定至少有 4 個極值點（2 個局部極大 $\kappa_{\max}$ 與 2 個局部極小 $\kappa_{\min}$）
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Buttons in Nav -->
+      <div class="flex items-center space-x-2">
+        <button id="theoryBtn" class="text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>幾何原理解析</span>
+        </button>
+        <button id="resetViewBtn" class="text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-md transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <span>重設橢圓</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto w-full p-3 sm:p-5 flex-1 flex flex-col gap-4">
+
+    <!-- Top Toolbar: Presets, Modes & Status Summary -->
+    <div class="glass-panel p-3 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xl">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-1">幾何預設：</span>
+        <button data-preset="ellipse" class="preset-btn px-3 py-1.2 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 hover:bg-indigo-500/30 transition">
+          典型橢圓 (4頂點)
+        </button>
+        <button data-preset="egg" class="preset-btn px-3 py-1.2 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+          非對稱卵形 (4頂點)
+        </button>
+        <button data-preset="wavy" class="preset-btn px-3 py-1.2 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+          三波紋葉 (6頂點)
+        </button>
+        <button data-preset="star" class="preset-btn px-3 py-1.2 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+          四瓣星輪 (8頂點)
+        </button>
+        <button data-preset="circle" class="preset-btn px-3 py-1.2 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+          完美圓 (常曲率退化)
+        </button>
+      </div>
+
+      <!-- Live Theorem Verification Badge -->
+      <div id="theoremStatusBadge" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-medium min-h-[36px]">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+        <span id="badgeText">定理驗證中...</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 items-stretch">
+      
+      <!-- LEFT: 2D Curve Visualizer & Freehand Canvas (7 cols) -->
+      <div class="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col relative overflow-hidden shadow-2xl border border-slate-700/60">
+        <!-- Canvas Header Bar -->
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+            <h2 class="text-sm font-semibold text-white tracking-wide">
+              空間幾何視窗：閉曲線 $\mathbf{r}(t)$ 與密切圓
+            </h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-amber-300/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              支援滑鼠/觸控直接手繪
+            </span>
+            <button id="clearDrawBtn" class="text-xs px-2.5 py-1 bg-rose-900/30 hover:bg-rose-800/50 text-rose-300 border border-rose-700/40 rounded-lg transition">
+              清空畫布
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Canvas Frame -->
+        <div class="relative w-full flex-1 min-h-[360px] sm:min-h-[420px] rounded-xl overflow-hidden bg-slate-950/70 border border-slate-800 flex items-center justify-center">
+          <canvas id="curveCanvas" class="w-full h-full cursor-crosshair block"></canvas>
+          
+          <!-- Drawing Overlay Hint -->
+          <div id="drawHint" class="absolute bottom-4 left-4 pointer-events-none text-xs text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700/60 shadow flex items-center gap-2 backdrop-blur">
+            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+            按住左鍵隨手畫一圈封閉迴圈，放開後自動平滑濾波並尋找頂點
+          </div>
+
+          <!-- Hyperosculation Alert Box -->
+          <div id="hyperosculateBanner" class="absolute top-4 right-4 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-1 bg-amber-500/20 border border-amber-400/40 text-amber-200 px-3 py-2 rounded-xl text-xs font-semibold backdrop-blur shadow-lg flex items-center gap-2">
+            <span class="text-lg">✨</span>
+            <div>
+              <div class="font-bold">頂點處的三階切觸 (Hyperosculation)</div>
+              <div class="text-[11px] font-normal text-amber-300/90">此時 $\kappa'(s) = 0$，密切圓完全留在曲線同側，不切穿曲線！</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend and Quick Controls -->
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-4 text-slate-300">
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-rose-500 ring-2 ring-rose-400/30"></span>
+              <span>曲率極大點 ($\kappa_{\max}$，最急彎)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-400/30"></span>
+              <span>曲率極小點 ($\kappa_{\min}$，最平緩)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-amber-400 ring-2 ring-amber-300/30"></span>
+              <span>動態探針位置</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-emerald-400">
+              <span class="font-bold">綠: $\mathbf{T}$ 切向量</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-purple-400">
+              <span class="font-bold">紫: $\mathbf{N}$ 主法向量</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Curvature Function κ(s) & Metrics (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col gap-4">
+        
+        <!-- Curvature Graph κ(s) -->
+        <div class="glass-panel rounded-2xl p-4 flex flex-col flex-1 shadow-2xl border border-slate-700/60">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+              <h2 class="text-sm font-semibold text-white tracking-wide">
+                曲率函數波形圖：$\kappa(s)$ vs 弧長 $s$
+              </h2>
+            </div>
+            <span class="text-xs text-slate-400 font-mono-code" id="perimeterLabel">周長 L: --</span>
+          </div>
+
+          <p class="text-xs text-slate-400 mb-2">
+            橫軸為展開的弧長 $s \in [0, L]$。觀察波形必定具有至少 <strong class="text-rose-400">2 個峰</strong> 與 <strong class="text-blue-400">2 個谷</strong>：
+          </p>
+
+          <!-- Graph Canvas -->
+          <div class="relative w-full h-[210px] rounded-xl overflow-hidden bg-slate-950/70 border border-slate-800">
+            <canvas id="graphCanvas" class="w-full h-full block"></canvas>
+          </div>
+
+          <!-- Real-Time Probe Readouts -->
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+              <div class="text-slate-400 mb-0.5">當前曲率 $\kappa(s)$</div>
+              <div class="text-base font-bold font-mono-code text-indigo-300" id="readoutKappa">--</div>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+              <div class="text-slate-400 mb-0.5">密切圓半徑 $R = \frac{1}{|\kappa|}$</div>
+              <div class="text-base font-bold font-mono-code text-amber-300" id="readoutRadius">--</div>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+              <div class="text-slate-400 mb-0.5">曲率導數 $\kappa'(s) = \frac{d\kappa}{ds}$</div>
+              <div class="text-base font-bold font-mono-code text-slate-200" id="readoutDkappa">--</div>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+              <div class="text-slate-400 mb-0.5">切觸狀態</div>
+              <div class="text-sm font-bold font-mono-code" id="readoutType">一般點 (割線穿透)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Control Panel & Slider -->
+        <div class="glass-panel rounded-2xl p-4 shadow-2xl border border-slate-700/60 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              曲線上動態探針巡覽
+            </h3>
+            <button id="playBtn" class="text-xs px-3 py-1 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium transition flex items-center gap-1">
+              <svg id="playIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+              <span id="playText">自動循軌巡覽</span>
+            </button>
+          </div>
+
+          <!-- Parameter Slider -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>參數位置 $t \in [0, 2\pi)$</span>
+              <span id="tParamDisplay" class="font-mono-code text-amber-300">0.00 rad</span>
+            </div>
+            <input id="probeSlider" type="range" min="0" max="6.28318" step="0.01" value="0" class="w-full accent-amber-400 cursor-pointer h-2 bg-slate-700 rounded-lg">
+          </div>
+
+          <!-- Fourier Filter Smoothing Cutoff -->
+          <div class="space-y-1 pt-1 border-t border-slate-800">
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>傅立葉平滑濾波階數 $M$：</span>
+              <span id="fourierHarmonicDisplay" class="font-mono-code text-indigo-300">4 階 (經典凸曲線)</span>
+            </div>
+            <input id="harmonicsSlider" type="range" min="2" max="9" step="1" value="4" class="w-full accent-indigo-500 cursor-pointer h-2 bg-slate-700 rounded-lg">
+            <div class="flex justify-between text-[10px] text-slate-500">
+              <span>平滑主幹 (濾除手抖)</span>
+              <span>容許更多幾何細部波紋</span>
+            </div>
+          </div>
+
+          <!-- Toggles -->
+          <div class="grid grid-cols-2 gap-2 pt-1 text-xs border-t border-slate-800">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <input type="checkbox" id="toggleCircle" checked class="rounded bg-slate-800 border-slate-700 text-indigo-500 accent-indigo-500">
+              <span>顯示密切圓 (Osculating)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <input type="checkbox" id="toggleFrame" checked class="rounded bg-slate-800 border-slate-700 text-indigo-500 accent-indigo-500">
+              <span>顯示切法標架 ($\mathbf{T}, \mathbf{N}$)</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Theory Modal Dialog -->
+  <div id="theoryModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="glass-panel bg-slate-900/95 border border-slate-700 max-w-2xl w-full max-h-[90vh] rounded-2xl overflow-y-auto p-6 shadow-2xl flex flex-col gap-4 text-sm text-slate-300">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span class="text-indigo-400">📖</span> 四頂點定理（Four-Vertex Theorem）幾何原理解析
+        </h2>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="space-y-4 leading-relaxed">
+        <div class="p-3.5 bg-indigo-950/40 border border-indigo-500/30 rounded-xl text-indigo-200">
+          <strong class="text-white block mb-1">定理陳述 (Mukhopadhyaya 1909, Kneser 1912)：</strong>
+          任何一條平面上的非圓簡單（無自相交）平滑封閉曲線，其曲率函數 $\kappa(s)$ 至少有 4 個頂點（即滿足以弧長為參數的一階導數 $\kappa'(s) = 0$ 之點），其中至少包含 <strong>2 個局部極大值</strong> 與 <strong>2 個局部極小值</strong>。
+        </div>
+
+        <div>
+          <h3 class="text-base font-semibold text-white mb-1">1. 為什麼不能只有 2 個頂點？（反證法經典精髓）</h3>
+          <p class="text-slate-300">
+            在圓周 $S^1$ 上的任何連續實值函數，根據極值定理天然具備至少 1 個全域最大與 1 個全域最小。
+            但若曲線<strong>恰好只有 2 個頂點</strong> $P_1$（極小值）與 $P_2$（極大值），連結這兩點的直線 $L: ax + by + c = 0$ 會把閉曲線切成兩半：
+            在一側 $\kappa'(s) > 0$，在另一側 $\kappa'(s) < 0$。
+          </p>
+          
+          <div class="my-2 p-3 bg-slate-950 rounded-xl border border-slate-800 text-center text-amber-200">
+            $$\oint_C \kappa'(s) \big(a\,x(s) + b\,y(s) + c\big)\,ds = 0$$
+          </div>
+
+          <p class="text-slate-300">
+            根據封閉平面曲線的微分幾何恆等式，上述封閉線積分必恆等於 $0$。
+            但若頂點只有 2 個，被直線切開後的兩側，$\kappa'(s)$ 與符號距離函數 $(ax + by + c)$ 具有<strong>完全相同的符號</strong>！這導致被積函數在整條曲線上恆非負（$\ge 0$）且不恆為零，積分結果必嚴格大於 $0$，產生致命矛盾！
+            因此，頂點數不可能為 2，必須至少有 4 個。
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-base font-semibold text-white mb-1">2. 密切圓在「頂點」處的超切觸（Hyperosculation）</h3>
+          <p class="text-slate-300">
+            在曲線的一般點上，密切圓與曲線具有 $2$ 階接觸，圓會<strong>穿透（Cross）</strong>曲線；
+            但在頂點處，由於 $\kappa'(s) = 0$，密切圓與曲線達到了更高階的 <strong>$3$ 階接觸</strong>。密切圓在局部會<strong>完全留在曲線的同一側</strong>，絕對不會穿過曲線割線。
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-base font-semibold text-white mb-1">3. 手繪曲線的「傅立葉截斷平滑（Fourier Truncation）」</h3>
+          <p class="text-slate-300">
+            人手在螢幕上繪製的折線存在高頻離散微震顫，若直接進行數值微商會產生數十個微小假頂點。
+            本系統將手繪座標展開為週期傅立葉級數：
+            $$x(t) = a_0 + \sum_{k=1}^M (a_k \cos kt + b_k \sin kt), \quad y(t) = c_0 + \sum_{k=1}^M (c_k \cos kt + d_k \sin kt)$$
+            僅保留前 $M$ 階低頻幾何主幹，並透過解析求導精準計算曲率 $\kappa(t) = \frac{\dot{x}\ddot{y} - \dot{y}\ddot{x}}{(\dot{x}^2 + \dot{y}^2)^{3/2}}$ 及其導數 $\kappa'(s)$。
+          </p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end">
+        <button id="closeModalBtn2" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition">
+          我知道了，開始探索
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Global KaTeX Auto-Render Helper */
+    function renderMath(element = document.body) {
+      if (window.renderMathInElement) {
+        window.renderMathInElement(element, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\(', right: '\\)', display: false},
+            {left: '\\[', right: '\\]', display: true}
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    /* Global Application State */
+    const state = {
+      harmonicsCount: 4,
+      a: [], b: [], c: [], d: [],
+      a0: 0, c0: 0,
+      
+      // Arc length sampling
+      N_samples: 400,
+      tSamples: [],
+      sSamples: [],
+      kappaSamples: [],
+      dkappaSamples: [],
+      xSamples: [],
+      ySamples: [],
+      totalLength: 0,
+      
+      // Extrema / Vertices
+      vertices: [], // { t, s, kappa, type: 'max' | 'min', x, y }
+      
+      // Probe
+      probeT: 0,
+      isPlaying: false,
+      
+      // Toggles
+      showCircle: true,
+      showFrame: true,
+      
+      // Freehand drawing
+      isDrawing: false,
+      rawPoints: []
+    };
+
+    const curveCanvas = document.getElementById('curveCanvas');
+    const curveCtx = curveCanvas.getContext('2d');
+    const graphCanvas = document.getElementById('graphCanvas');
+    const graphCtx = graphCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Curve canvas
+      const rectC = curveCanvas.parentElement.getBoundingClientRect();
+      curveCanvas.width = rectC.width * dpr;
+      curveCanvas.height = rectC.height * dpr;
+      curveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Graph canvas
+      const rectG = graphCanvas.parentElement.getBoundingClientRect();
+      graphCanvas.width = rectG.width * dpr;
+      graphCanvas.height = rectG.height * dpr;
+      graphCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      renderAll();
+    }
+
+    window.addEventListener('resize', resizeCanvases);
+
+    // Generate coefficients from raw discrete points using discrete Fourier transform
+    function fitFourierToPoints(points, maxHarmonics) {
+      const N = points.length;
+      if (N < 8) return;
+
+      const M = Math.min(maxHarmonics, Math.floor(N / 2) - 1);
+      state.a = new Array(M + 1).fill(0);
+      state.b = new Array(M + 1).fill(0);
+      state.c = new Array(M + 1).fill(0);
+      state.d = new Array(M + 1).fill(0);
+
+      let sumX = 0, sumY = 0;
+      for (let j = 0; j < N; j++) {
+        sumX += points[j].x;
+        sumY += points[j].y;
+      }
+      state.a0 = sumX / N;
+      state.c0 = sumY / N;
+
+      for (let k = 1; k <= M; k++) {
+        let ak = 0, bk = 0, ck = 0, dk = 0;
+        for (let j = 0; j < N; j++) {
+          const theta = (2 * Math.PI * j) / N;
+          const cosT = Math.cos(k * theta);
+          const sinT = Math.sin(k * theta);
+          ak += points[j].x * cosT;
+          bk += points[j].x * sinT;
+          ck += points[j].y * cosT;
+          dk += points[j].y * sinT;
+        }
+        state.a[k] = (2 / N) * ak;
+        state.b[k] = (2 / N) * bk;
+        state.c[k] = (2 / N) * ck;
+        state.d[k] = (2 / N) * dk;
+      }
+
+      // Check orientation: calculate signed area via Fourier coefficients
+      let areaSign = 0;
+      for (let k = 1; k <= M; k++) {
+        areaSign += k * (state.a[k] * state.d[k] - state.b[k] * state.c[k]);
+      }
+      
+      // Ensure Counter-Clockwise orientation (Area > 0)
+      if (areaSign < 0) {
+        for (let k = 1; k <= M; k++) {
+          state.b[k] = -state.b[k];
+          state.d[k] = -state.d[k];
+        }
+      }
+
+      recomputeCurveMetrics();
+    }
+
+    function evaluateCurveAt(t) {
+      let x = state.a0, y = state.c0;
+      let dx = 0, dy = 0;
+      let d2x = 0, d2y = 0;
+      let d3x = 0, d3y = 0;
+      const M = state.a.length - 1;
+
+      for (let k = 1; k <= M; k++) {
+        const cos = Math.cos(k * t);
+        const sin = Math.sin(k * t);
+
+        x += state.a[k] * cos + state.b[k] * sin;
+        y += state.c[k] * cos + state.d[k] * sin;
+
+        const k1 = k;
+        dx += k1 * (-state.a[k] * sin + state.b[k] * cos);
+        dy += k1 * (-state.c[k] * sin + state.d[k] * cos);
+
+        const k2 = k * k;
+        d2x += k2 * (-state.a[k] * cos - state.b[k] * sin);
+        d2y += k2 * (-state.c[k] * cos - state.d[k] * sin);
+
+        const k3 = k * k * k;
+        d3x += k3 * (state.a[k] * sin - state.b[k] * cos);
+        d3y += k3 * (state.c[k] * sin - state.d[k] * cos);
+      }
+
+      const speedSq = dx * dx + dy * dy;
+      const speed = Math.sqrt(speedSq) || 0.0001;
+      const cross = dx * d2y - dy * d2x;
+      const denom = Math.pow(speedSq, 1.5) || 0.0001;
+      const kappa = cross / denom;
+
+      // Derivative of curvature dkappa/ds = dkappa/dt * (1 / speed)
+      const dcross = dx * d3y - dy * d3x;
+      const dspeedSq = 2 * (dx * d2x + dy * d2y);
+      const dkappa_dt = (dcross * denom - cross * 1.5 * Math.sqrt(speedSq) * dspeedSq) / (denom * denom);
+      const dkappa_ds = dkappa_dt / speed;
+
+      // Unit tangent T and unit normal N (inward for CCW positive curvature)
+      const Tx = dx / speed;
+      const Ty = dy / speed;
+      const Nx = -Ty;
+      const Ny = Tx;
+
+      return { x, y, dx, dy, d2x, d2y, speed, kappa, dkappa_ds, Tx, Ty, Nx, Ny };
+    }
+
+    function recomputeCurveMetrics() {
+      const N = state.N_samples;
+      state.tSamples = new Array(N);
+      state.sSamples = new Array(N);
+      state.kappaSamples = new Array(N);
+      state.dkappaSamples = new Array(N);
+      state.xSamples = new Array(N);
+      state.ySamples = new Array(N);
+
+      let accumulatedLength = 0;
+      state.sSamples[0] = 0;
+
+      let prevEv = evaluateCurveAt(0);
+      state.tSamples[0] = 0;
+      state.xSamples[0] = prevEv.x;
+      state.ySamples[0] = prevEv.y;
+      state.kappaSamples[0] = prevEv.kappa;
+      state.dkappaSamples[0] = prevEv.dkappa_ds;
+
+      for (let i = 1; i < N; i++) {
+        const t = (2 * Math.PI * i) / N;
+        const ev = evaluateCurveAt(t);
+        const dist = Math.hypot(ev.x - prevEv.x, ev.y - prevEv.y);
+        accumulatedLength += dist;
+
+        state.tSamples[i] = t;
+        state.sSamples[i] = accumulatedLength;
+        state.xSamples[i] = ev.x;
+        state.ySamples[i] = ev.y;
+        state.kappaSamples[i] = ev.kappa;
+        state.dkappaSamples[i] = ev.dkappa_ds;
+        prevEv = ev;
+      }
+      accumulatedLength += Math.hypot(state.xSamples[0] - prevEv.x, state.ySamples[0] - prevEv.y);
+      state.totalLength = accumulatedLength;
+
+      locateVertices();
+      updateTheoremBadge();
+    }
+
+    function locateVertices() {
+      state.vertices = [];
+      const N = state.N_samples;
+      const kappas = state.kappaSamples;
+
+      // Check if curvature is virtually constant (circle degenerate case)
+      let minK = Infinity, maxK = -Infinity;
+      for (let i = 0; i < N; i++) {
+        if (kappas[i] < minK) minK = kappas[i];
+        if (kappas[i] > maxK) maxK = kappas[i];
+      }
+      if (Math.abs(maxK - minK) < 0.0003) {
+        return;
+      }
+
+      for (let i = 0; i < N; i++) {
+        const prev = kappas[(i - 1 + N) % N];
+        const curr = kappas[i];
+        const next = kappas[(i + 1) % N];
+
+        if (curr > prev && curr >= next) {
+          state.vertices.push({
+            index: i,
+            t: state.tSamples[i],
+            s: state.sSamples[i],
+            kappa: curr,
+            type: 'max',
+            x: state.xSamples[i],
+            y: state.ySamples[i]
+          });
+        } else if (curr < prev && curr <= next) {
+          state.vertices.push({
+            index: i,
+            t: state.tSamples[i],
+            s: state.sSamples[i],
+            kappa: curr,
+            type: 'min',
+            x: state.xSamples[i],
+            y: state.ySamples[i]
+          });
+        }
+      }
+    }
+
+    function updateTheoremBadge() {
+      const badge = document.getElementById('theoremStatusBadge');
+      const badgeText = document.getElementById('badgeText');
+      const maxCount = state.vertices.filter(v => v.type === 'max').length;
+      const minCount = state.vertices.filter(v => v.type === 'min').length;
+      const total = state.vertices.length;
+
+      document.getElementById('perimeterLabel').innerText = `周長 L = ${state.totalLength.toFixed(1)} px`;
+
+      if (total === 0) {
+        badge.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs sm:text-sm font-medium";
+        badgeText.innerHTML = `完美圓周：常曲率 $\\kappa = \\text{const}$ (導函數 $\\kappa' \\equiv 0$，處處皆為頂點)`;
+      } else if (total >= 4 && maxCount >= 2 && minCount >= 2) {
+        badge.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-semibold";
+        badgeText.innerHTML = `✅ 驗證成功：找到 ${total} 個頂點 (${maxCount} 個極大 $\\kappa_{\\max}$, ${minCount} 個極小 $\\kappa_{\\min}$) $\\ge 4$`;
+      } else {
+        badge.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs sm:text-sm font-semibold";
+        badgeText.innerHTML = `⚠️ 頂點數 = ${total} (注意：四頂點定理要求簡單封閉無自交曲線)`;
+      }
+
+      renderMath(badge);
+    }
+
+    function loadPreset(presetName) {
+      const rect = curveCanvas.parentElement.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const r = Math.min(rect.width, rect.height) * 0.34;
+      const points = [];
+      const K = 200;
+
+      for (let i = 0; i < K; i++) {
+        const t = (2 * Math.PI * i) / K;
+        let x = 0, y = 0;
+
+        if (presetName === 'ellipse') {
+          x = cx + 1.35 * r * Math.cos(t);
+          y = cy + 0.78 * r * Math.sin(t);
+        } else if (presetName === 'egg') {
+          const rad = r * (1 + 0.28 * Math.cos(t));
+          x = cx + 1.15 * rad * Math.cos(t);
+          y = cy + 0.85 * rad * Math.sin(t);
+        } else if (presetName === 'wavy') {
+          const rad = r * (1 + 0.22 * Math.cos(3 * t));
+          x = cx + rad * Math.cos(t);
+          y = cy + rad * Math.sin(t);
+        } else if (presetName === 'star') {
+          const rad = r * (1 + 0.25 * Math.cos(4 * t));
+          x = cx + rad * Math.cos(t);
+          y = cy + rad * Math.sin(t);
+        } else if (presetName === 'circle') {
+          x = cx + r * Math.cos(t);
+          y = cy + r * Math.sin(t);
+        }
+        points.push({ x, y });
+      }
+
+      fitFourierToPoints(points, state.harmonicsCount);
+      renderAll();
+    }
+
+    function drawCurveCanvas() {
+      const width = curveCanvas.parentElement.clientWidth;
+      const height = curveCanvas.parentElement.clientHeight;
+      curveCtx.clearRect(0, 0, width, height);
+
+      // Subtle grid
+      curveCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      curveCtx.lineWidth = 1;
+      const gridSize = 40;
+      curveCtx.beginPath();
+      for (let x = 0; x <= width; x += gridSize) {
+        curveCtx.moveTo(x, 0); curveCtx.lineTo(x, height);
+      }
+      for (let y = 0; y <= height; y += gridSize) {
+        curveCtx.moveTo(0, y); curveCtx.lineTo(width, y);
+      }
+      curveCtx.stroke();
+
+      // If user is currently drawing, render raw sketch
+      if (state.isDrawing && state.rawPoints.length > 1) {
+        curveCtx.strokeStyle = 'rgba(244, 63, 94, 0.7)';
+        curveCtx.lineWidth = 2.5;
+        curveCtx.setLineDash([4, 4]);
+        curveCtx.beginPath();
+        curveCtx.moveTo(state.rawPoints[0].x, state.rawPoints[0].y);
+        for (let p of state.rawPoints) {
+          curveCtx.lineTo(p.x, p.y);
+        }
+        curveCtx.stroke();
+        curveCtx.setLineDash([]);
+        return;
+      }
+
+      if (state.xSamples.length < 2) return;
+
+      // Draw smoothed closed curve
+      curveCtx.strokeStyle = '#6366f1';
+      curveCtx.lineWidth = 3.5;
+      curveCtx.beginPath();
+      curveCtx.moveTo(state.xSamples[0], state.ySamples[0]);
+      for (let i = 1; i < state.xSamples.length; i++) {
+        curveCtx.lineTo(state.xSamples[i], state.ySamples[i]);
+      }
+      curveCtx.closePath();
+      curveCtx.stroke();
+
+      // Fill light transparent interior
+      curveCtx.fillStyle = 'rgba(99, 102, 241, 0.04)';
+      curveCtx.fill();
+
+      // Current probe
+      const cur = evaluateCurveAt(state.probeT);
+      const kappa = cur.kappa;
+      const absKappa = Math.abs(kappa);
+      const R = absKappa > 0.0001 ? 1 / absKappa : 9999;
+
+      const oscCenterX = cur.x + (1 / kappa) * cur.Nx;
+      const oscCenterY = cur.y + (1 / kappa) * cur.Ny;
+
+      // Draw Osculating Circle
+      if (state.showCircle && R < Math.max(width, height) * 2.5) {
+        curveCtx.save();
+        curveCtx.strokeStyle = 'rgba(251, 191, 36, 0.65)';
+        curveCtx.lineWidth = 2;
+        curveCtx.fillStyle = 'rgba(251, 191, 36, 0.06)';
+        curveCtx.setLineDash([5, 4]);
+        curveCtx.beginPath();
+        curveCtx.arc(oscCenterX, oscCenterY, R, 0, 2 * Math.PI);
+        curveCtx.fill();
+        curveCtx.stroke();
+        curveCtx.restore();
+
+        // Center marker
+        curveCtx.fillStyle = '#f59e0b';
+        curveCtx.beginPath();
+        curveCtx.arc(oscCenterX, oscCenterY, 3, 0, 2 * Math.PI);
+        curveCtx.fill();
+
+        // Radius line
+        curveCtx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+        curveCtx.lineWidth = 1.2;
+        curveCtx.beginPath();
+        curveCtx.moveTo(cur.x, cur.y);
+        curveCtx.lineTo(oscCenterX, oscCenterY);
+        curveCtx.stroke();
+      }
+
+      // Draw Frame (T, N)
+      if (state.showFrame) {
+        const vLen = 42;
+        // Tangent T (Green)
+        curveCtx.strokeStyle = '#10b981';
+        curveCtx.lineWidth = 2.5;
+        curveCtx.beginPath();
+        curveCtx.moveTo(cur.x, cur.y);
+        curveCtx.lineTo(cur.x + cur.Tx * vLen, cur.y + cur.Ty * vLen);
+        curveCtx.stroke();
+
+        // Normal N (Purple)
+        curveCtx.strokeStyle = '#a855f7';
+        curveCtx.lineWidth = 2.5;
+        curveCtx.beginPath();
+        curveCtx.moveTo(cur.x, cur.y);
+        curveCtx.lineTo(cur.x + cur.Nx * vLen, cur.y + cur.Ny * vLen);
+        curveCtx.stroke();
+      }
+
+      // Draw Vertices
+      state.vertices.forEach((v, idx) => {
+        const isMax = v.type === 'max';
+        const color = isMax ? '#ef4444' : '#3b82f6';
+        const ringColor = isMax ? 'rgba(239, 68, 68, 0.35)' : 'rgba(59, 130, 246, 0.35)';
+
+        // Glow halo
+        curveCtx.fillStyle = ringColor;
+        curveCtx.beginPath();
+        curveCtx.arc(v.x, v.y, 11, 0, 2 * Math.PI);
+        curveCtx.fill();
+
+        // Vertex Dot
+        curveCtx.fillStyle = color;
+        curveCtx.beginPath();
+        curveCtx.arc(v.x, v.y, 5.5, 0, 2 * Math.PI);
+        curveCtx.fill();
+
+        // Vertex tag badge
+        curveCtx.fillStyle = '#ffffff';
+        curveCtx.font = 'bold 10px Inter';
+        curveCtx.fillText(isMax ? `Max ${idx + 1}` : `Min ${idx + 1}`, v.x + 13, v.y + 3);
+      });
+
+      // Draw current Probe Point (Amber)
+      curveCtx.fillStyle = '#f59e0b';
+      curveCtx.strokeStyle = '#ffffff';
+      curveCtx.lineWidth = 2;
+      curveCtx.beginPath();
+      curveCtx.arc(cur.x, cur.y, 6.5, 0, 2 * Math.PI);
+      curveCtx.fill();
+      curveCtx.stroke();
+
+      checkHyperosculation(cur);
+    }
+
+    function drawGraphCanvas() {
+      const width = graphCanvas.parentElement.clientWidth;
+      const height = graphCanvas.parentElement.clientHeight;
+      graphCtx.clearRect(0, 0, width, height);
+
+      if (state.kappaSamples.length < 2) return;
+
+      const padding = { top: 24, bottom: 30, left: 50, right: 25 };
+      const plotW = width - padding.left - padding.right;
+      const plotH = height - padding.top - padding.bottom;
+
+      let minK = Math.min(...state.kappaSamples);
+      let maxK = Math.max(...state.kappaSamples);
+      const span = Math.max(maxK - minK, 0.001);
+      const yMin = minK - span * 0.15;
+      const yMax = maxK + span * 0.15;
+
+      const toScreenX = (s) => padding.left + (s / state.totalLength) * plotW;
+      const toScreenY = (k) => padding.top + plotH - ((k - yMin) / (yMax - yMin)) * plotH;
+
+      // Axis Lines
+      graphCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      graphCtx.lineWidth = 1;
+      graphCtx.beginPath();
+      graphCtx.moveTo(padding.left, padding.top);
+      graphCtx.lineTo(padding.left, padding.top + plotH);
+      graphCtx.moveTo(padding.left, padding.top + plotH);
+      graphCtx.lineTo(padding.left + plotW, padding.top + plotH);
+      graphCtx.stroke();
+
+      // Zero-curvature baseline
+      if (yMin <= 0 && yMax >= 0) {
+        const y0 = toScreenY(0);
+        graphCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        graphCtx.setLineDash([3, 3]);
+        graphCtx.beginPath();
+        graphCtx.moveTo(padding.left, y0);
+        graphCtx.lineTo(padding.left + plotW, y0);
+        graphCtx.stroke();
+        graphCtx.setLineDash([]);
+      }
+
+      // Draw Curvature Wave Curve
+      graphCtx.strokeStyle = '#818cf8';
+      graphCtx.lineWidth = 2.5;
+      graphCtx.beginPath();
+      for (let i = 0; i < state.sSamples.length; i++) {
+        const sx = toScreenX(state.sSamples[i]);
+        const sy = toScreenY(state.kappaSamples[i]);
+        if (i === 0) graphCtx.moveTo(sx, sy); else graphCtx.lineTo(sx, sy);
+      }
+      graphCtx.stroke();
+
+      // Fill gradient under wave
+      const grad = graphCtx.createLinearGradient(0, padding.top, 0, padding.top + plotH);
+      grad.addColorStop(0, 'rgba(129, 140, 248, 0.25)');
+      grad.addColorStop(1, 'rgba(129, 140, 248, 0.0)');
+      graphCtx.fillStyle = grad;
+      graphCtx.lineTo(toScreenX(state.totalLength), padding.top + plotH);
+      graphCtx.lineTo(padding.left, padding.top + plotH);
+      graphCtx.closePath();
+      graphCtx.fill();
+
+      // Vertices Markers on Graph
+      state.vertices.forEach(v => {
+        const sx = toScreenX(v.s);
+        const sy = toScreenY(v.kappa);
+        const color = v.type === 'max' ? '#ef4444' : '#3b82f6';
+
+        // Vertical indicator line
+        graphCtx.strokeStyle = color;
+        graphCtx.setLineDash([2, 2]);
+        graphCtx.lineWidth = 1;
+        graphCtx.beginPath();
+        graphCtx.moveTo(sx, padding.top + plotH);
+        graphCtx.lineTo(sx, sy);
+        graphCtx.stroke();
+        graphCtx.setLineDash([]);
+
+        // Vertex Dot
+        graphCtx.fillStyle = color;
+        graphCtx.beginPath();
+        graphCtx.arc(sx, sy, 4.5, 0, 2 * Math.PI);
+        graphCtx.fill();
+      });
+
+      // Current Probe location on Graph
+      const cur = evaluateCurveAt(state.probeT);
+      const curS = (state.probeT / (2 * Math.PI)) * state.totalLength;
+      const px = toScreenX(curS);
+      const py = toScreenY(cur.kappa);
+
+      // Vertical guide line
+      graphCtx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+      graphCtx.lineWidth = 1.5;
+      graphCtx.beginPath();
+      graphCtx.moveTo(px, padding.top);
+      graphCtx.lineTo(px, padding.top + plotH);
+      graphCtx.stroke();
+
+      // Probe Dot
+      graphCtx.fillStyle = '#f59e0b';
+      graphCtx.strokeStyle = '#ffffff';
+      graphCtx.lineWidth = 2;
+      graphCtx.beginPath();
+      graphCtx.arc(px, py, 6, 0, 2 * Math.PI);
+      graphCtx.fill();
+      graphCtx.stroke();
+
+      // Labels on Y-axis
+      graphCtx.fillStyle = '#94a3b8';
+      graphCtx.font = '10px JetBrains Mono';
+      graphCtx.textAlign = 'right';
+      graphCtx.fillText(maxK.toFixed(3), padding.left - 6, padding.top + 8);
+      graphCtx.fillText(minK.toFixed(3), padding.left - 6, padding.top + plotH);
+      graphCtx.fillText("s=0", padding.left, padding.top + plotH + 18);
+      graphCtx.fillText("s=L", padding.left + plotW, padding.top + plotH + 18);
+    }
+
+    function checkHyperosculation(cur) {
+      const banner = document.getElementById('hyperosculateBanner');
+      const dkappa = Math.abs(cur.dkappa_ds);
+      
+      // Near a vertex where |dkappa/ds| is extremely small
+      if (dkappa < 0.00025) {
+        banner.classList.remove('opacity-0', '-translate-y-1');
+        banner.classList.add('opacity-100', 'translate-y-0');
+        document.getElementById('readoutType').innerHTML = '<span class="text-amber-400 font-bold">✨ 頂點 (3階超切觸)</span>';
+      } else {
+        banner.classList.add('opacity-0', '-translate-y-1');
+        banner.classList.remove('opacity-100', 'translate-y-0');
+        document.getElementById('readoutType').innerHTML = '<span class="text-slate-300">一般點 (割線穿透)</span>';
+      }
+
+      document.getElementById('readoutKappa').innerText = cur.kappa.toFixed(4);
+      const R = Math.abs(cur.kappa) > 0.0001 ? (1 / Math.abs(cur.kappa)).toFixed(1) + ' px' : '∞ (平直)';
+      document.getElementById('readoutRadius').innerText = R;
+      document.getElementById('readoutDkappa').innerText = cur.dkappa_ds.toFixed(5);
+      document.getElementById('tParamDisplay').innerText = state.probeT.toFixed(2) + ' rad';
+    }
+
+    function renderAll() {
+      drawCurveCanvas();
+      drawGraphCanvas();
+    }
+
+    function setupDrawingHandlers() {
+      const getPos = (e) => {
+        const rect = curveCanvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top
+        };
+      };
+
+      const startDraw = (e) => {
+        e.preventDefault();
+        state.isDrawing = true;
+        state.rawPoints = [getPos(e)];
+        document.getElementById('drawHint').classList.add('opacity-20');
+        renderAll();
+      };
+
+      const moveDraw = (e) => {
+        if (!state.isDrawing) return;
+        e.preventDefault();
+        const pt = getPos(e);
+        const last = state.rawPoints[state.rawPoints.length - 1];
+        if (Math.hypot(pt.x - last.x, pt.y - last.y) > 5) {
+          state.rawPoints.push(pt);
+          renderAll();
+        }
+      };
+
+      const endDraw = (e) => {
+        if (!state.isDrawing) return;
+        e.preventDefault();
+        state.isDrawing = false;
+        document.getElementById('drawHint').classList.remove('opacity-20');
+
+        if (state.rawPoints.length > 15) {
+          state.rawPoints.push({ x: state.rawPoints[0].x, y: state.rawPoints[0].y });
+          fitFourierToPoints(state.rawPoints, state.harmonicsCount);
+        }
+        renderAll();
+      };
+
+      curveCanvas.addEventListener('mousedown', startDraw);
+      window.addEventListener('mousemove', moveDraw);
+      window.addEventListener('mouseup', endDraw);
+
+      curveCanvas.addEventListener('touchstart', startDraw, { passive: false });
+      window.addEventListener('touchmove', moveDraw, { passive: false });
+      window.addEventListener('touchend', endDraw);
+    }
+
+    const slider = document.getElementById('probeSlider');
+    slider.addEventListener('input', (e) => {
+      state.probeT = parseFloat(e.target.value);
+      renderAll();
+    });
+
+    const harmonicsSlider = document.getElementById('harmonicsSlider');
+    harmonicsSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      state.harmonicsCount = val;
+      document.getElementById('fourierHarmonicDisplay').innerText = `${val} 階濾波`;
+      if (state.rawPoints.length > 15) {
+        fitFourierToPoints(state.rawPoints, val);
+      } else {
+        const pts = state.xSamples.map((x, i) => ({ x, y: state.ySamples[i] }));
+        fitFourierToPoints(pts, val);
+      }
+      renderAll();
+    });
+
+    // Preset Buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-btn').forEach(b => {
+          b.className = "preset-btn px-3 py-1.2 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition";
+        });
+        btn.className = "preset-btn px-3 py-1.2 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 hover:bg-indigo-500/30 transition";
+        loadPreset(btn.dataset.preset);
+      });
+    });
+
+    // Clear Canvas
+    document.getElementById('clearDrawBtn').addEventListener('click', () => {
+      state.rawPoints = [];
+      state.xSamples = [];
+      state.ySamples = [];
+      state.vertices = [];
+      state.isDrawing = false;
+      curveCtx.clearRect(0, 0, curveCanvas.width, curveCanvas.height);
+      graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+      const badgeText = document.getElementById('badgeText');
+      badgeText.innerText = "請在左側畫布按住滑鼠畫一圈封閉曲線";
+    });
+
+    // Reset View Button
+    document.getElementById('resetViewBtn').addEventListener('click', () => {
+      loadPreset('ellipse');
+    });
+
+    // Toggles
+    document.getElementById('toggleCircle').addEventListener('change', (e) => {
+      state.showCircle = e.target.checked;
+      renderAll();
+    });
+    document.getElementById('toggleFrame').addEventListener('change', (e) => {
+      state.showFrame = e.target.checked;
+      renderAll();
+    });
+
+    // Auto-Play Probe Tour
+    const playBtn = document.getElementById('playBtn');
+    playBtn.addEventListener('click', () => {
+      state.isPlaying = !state.isPlaying;
+      document.getElementById('playText').innerText = state.isPlaying ? "暫停巡覽" : "自動循軌巡覽";
+    });
+
+    // Theory Modal Logic
+    const modal = document.getElementById('theoryModal');
+    document.getElementById('theoryBtn').addEventListener('click', () => {
+      modal.classList.remove('hidden');
+      renderMath(modal);
+    });
+    document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('closeModalBtn2').addEventListener('click', () => modal.classList.add('hidden'));
+
+    function animate() {
+      if (state.isPlaying) {
+        state.probeT = (state.probeT + 0.015) % (2 * Math.PI);
+        slider.value = state.probeT;
+        renderAll();
+      }
+      requestAnimationFrame(animate);
+    }
+
+    // Startup Initialization
+    window.onload = function() {
+      setupDrawingHandlers();
+      resizeCanvases();
+      loadPreset('ellipse');
+      animate();
+      // Render all static LaTeX in the page
+      renderMath(document.body);
+    };
+  </script>
+</body>
+</html>
